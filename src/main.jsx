@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Flame, ShoppingBag, Plus, Minus, X, ArrowRight, Clock3, Leaf, ChefHat, Instagram, Check, LayoutDashboard, Pizza, ClipboardList, Settings, ChevronDown, Search } from "lucide-react";
+import { Flame, ShoppingBag, Plus, Minus, X, ArrowRight, Clock3, Leaf, ChefHat, Check, LayoutDashboard, Pizza, ClipboardList, Settings, ChevronDown, Search } from "lucide-react";
 import "./styles.css";
 
 const initialMenu = [
