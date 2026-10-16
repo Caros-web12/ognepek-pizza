@@ -101,10 +101,22 @@ export default async function handler(req, res) {
       UPDATE orders
       SET status = ${status}
       WHERE public_code = ${publicCode}
+        AND (status <> 'Доставлен' OR status = ${status})
       RETURNING public_code, status
     `;
     if (updated.length === 0) {
-      return res.status(404).json({ error: "Заказ не найден." });
+      const existing = await sql`
+        SELECT status FROM orders WHERE public_code = ${publicCode} LIMIT 1
+      `;
+      if (existing.length === 0) {
+        return res.status(404).json({ error: "Заказ не найден." });
+      }
+      if (existing[0].status === "Доставлен" && status !== "Доставлен") {
+        return res.status(409).json({
+          error: "Доставленный заказ нельзя изменить через обычную смену статуса.",
+        });
+      }
+      return res.status(409).json({ error: "Не удалось изменить статус заказа." });
     }
     return res.status(200).json({ order: { id: updated[0].public_code, status: updated[0].status } });
   } catch (error) {

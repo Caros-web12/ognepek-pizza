@@ -136,6 +136,10 @@
 
     const select = element("select", `status-control ${statusClass(order.status)}`);
     select.setAttribute("aria-label", `Статус заказа ${order.id || "без номера"}`);
+    if (order.status === "Доставлен") {
+      select.disabled = true;
+      select.title = "Доставленный заказ нельзя изменить обычным способом.";
+    }
     for (const status of STATUS_OPTIONS) {
       const option = element("option", "", status);
       option.value = status;
@@ -153,6 +157,10 @@
         });
         order.status = nextStatus;
         select.className = `status-control ${statusClass(nextStatus)}`;
+        if (nextStatus === "Доставлен") {
+          select.disabled = true;
+          select.title = "Доставленный заказ нельзя изменить обычным способом.";
+        }
         showToast(`Статус ${order.id} сохранён: ${nextStatus}`);
       } catch (err) {
         select.value = previousStatus;
