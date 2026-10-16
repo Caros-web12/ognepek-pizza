@@ -1,0 +1,5 @@
+/* The public storefront should not expose a visible admin entry point. */
+.nav-actions .admin-link,
+footer button {
+  display: none !important;
+}
