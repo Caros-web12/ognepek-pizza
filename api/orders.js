@@ -65,6 +65,20 @@ function cleanText(value, maxLength) {
   return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
 }
 
+function normalizeRussianPhone(value) {
+  if (typeof value !== "string") return null;
+  const raw = value.trim();
+  if (!raw || !/^[+\d\s().-]+$/.test(raw)) return null;
+  if (raw.startsWith("+") && !raw.startsWith("+7")) return null;
+
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 10) return "+7" + digits;
+  if (digits.length === 11 && (digits.startsWith("7") || digits.startsWith("8"))) {
+    return "+7" + digits.slice(1);
+  }
+  return null;
+}
+
 function parseRequestBody(req) {
   if (req.body && typeof req.body === "object") return req.body;
   if (typeof req.body === "string") return JSON.parse(req.body);
@@ -90,7 +104,8 @@ export default async function handler(req, res) {
 
   const customerInput = body?.customer ?? {};
   const customerName = cleanText(customerInput.name, 100);
-  const phone = cleanText(customerInput.phone, 40);
+  const rawPhone = cleanText(customerInput.phone, 40);
+  const phone = normalizeRussianPhone(rawPhone);
   const method = customerInput.method;
   const address = cleanText(customerInput.address, 250);
   const comment = cleanText(customerInput.comment, 1000);
@@ -98,8 +113,11 @@ export default async function handler(req, res) {
   const scheduledTime = body?.scheduledTime;
   const cartInput = body?.items;
 
-  if (!customerName || !phone) {
-    return send(res, 400, { error: "Укажите имя и телефон." });
+  if (!customerName) {
+    return send(res, 400, { error: "Укажите имя." });
+  }
+  if (!phone) {
+    return send(res, 400, { error: "Укажите корректный российский номер: 10 цифр, полный номер с +7 или с 8 в начале." });
   }
   if (!["Доставка", "Самовывоз"].includes(method)) {
     return send(res, 400, { error: "Выберите доставку или самовывоз." });

@@ -83,6 +83,43 @@ function formatScheduleDate(dateValue) {
   });
 }
 
+function russianPhoneDigits(value) {
+  const raw = String(value ?? '').trim();
+  let digits = raw.replace(/\D/g, '');
+
+  // The form already displays +7, so remove that prefix while the user types.
+  if (raw.startsWith('+7') && digits.startsWith('7')) {
+    digits = digits.slice(1);
+  } else if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
+    // Also support pasting a complete number with country code 7 or national prefix 8.
+    digits = digits.slice(1);
+  }
+
+  return digits.slice(0, 10);
+}
+
+function formatRussianPhone(value) {
+  const digits = russianPhoneDigits(value);
+  if (!digits) return '+7';
+
+  let formatted = '+7';
+  formatted += ' (' + digits.slice(0, 3);
+  if (digits.length >= 3) formatted += ')';
+  if (digits.length > 3) formatted += ' ' + digits.slice(3, 6);
+  if (digits.length > 6) formatted += '-' + digits.slice(6, 8);
+  if (digits.length > 8) formatted += '-' + digits.slice(8, 10);
+  return formatted;
+}
+
+function normalizeRussianPhone(value) {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  if (digits.length === 10) return '+7' + digits;
+  if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
+    return '+7' + digits.slice(1);
+  }
+  return '';
+}
+
 function App() {
   const [menu, setMenu] = useState(initialMenu);
   const [cart, setCart] = useState({});
@@ -93,7 +130,7 @@ function App() {
     const firstChoice = getFirstBookingChoice(new Date());
     return {
       name: "",
-      phone: "",
+      phone: "+7",
       address: "",
       method: "Доставка",
       comment: "",
@@ -143,6 +180,12 @@ function App() {
       return;
     }
 
+    const normalizedPhone = normalizeRussianPhone(customer.phone);
+    if (!normalizedPhone) {
+      flash("Введите 10 цифр номера телефона после +7.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/orders", {
@@ -151,7 +194,7 @@ function App() {
         body: JSON.stringify({
           customer: {
             name: customer.name.trim(),
-            phone: customer.phone.trim(),
+            phone: normalizedPhone,
             method: customer.method,
             address: customer.method === "Доставка" ? customer.address.trim() : "",
             comment: customer.comment.trim(),
@@ -395,9 +438,12 @@ function App() {
             required
             type="tel"
             value={customer.phone}
-            onChange={e => setCustomer({ ...customer, phone: e.target.value })}
+            onChange={e => setCustomer(current => ({ ...current, phone: formatRussianPhone(e.target.value) }))}
+            inputMode="tel"
+            autoComplete="tel-national"
             placeholder="+7 (___) ___-__-__"
           />
+          <small className="hint">Код +7 уже добавлен — введите остальные 10 цифр.</small>
         </label>
         {customer.method === "Доставка" && (
           <label>
