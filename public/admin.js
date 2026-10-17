@@ -136,6 +136,13 @@
 
     const select = element("select", `status-control ${statusClass(order.status)}`);
     select.setAttribute("aria-label", `Статус заказа ${order.id || "без номера"}`);
+    if (order.status === "Доставлен" || order.archived) {
+      select.disabled = true;
+      select.title = order.archived
+        ? "Заказ находится в архиве. Верните его из архива, чтобы менять статус."
+        : "Доставленный заказ нельзя изменить обычным способом.";
+    }
+    if (order.archived) identifiers.append(element("div", "order-time", "В архиве"));
     for (const status of STATUS_OPTIONS) {
       const option = element("option", "", status);
       option.value = status;
@@ -153,6 +160,10 @@
         });
         order.status = nextStatus;
         select.className = `status-control ${statusClass(nextStatus)}`;
+        if (nextStatus === "Доставлен") {
+          select.disabled = true;
+          select.title = "Доставленный заказ нельзя изменить обычным способом.";
+        }
         showToast(`Статус ${order.id} сохранён: ${nextStatus}`);
       } catch (err) {
         select.value = previousStatus;
@@ -162,11 +173,39 @@
         }
         showToast(err.message || "Не удалось сохранить статус.");
       } finally {
-        select.disabled = false;
+        select.disabled = order.status === "Доставлен" || order.archived;
       }
       reloadStats();
     });
-    top.append(select);
+    const archiveButton = element("button", "secondary", order.archived ? "Вернуть из архива" : "В архив");
+    archiveButton.type = "button";
+    archiveButton.addEventListener("click", async () => {
+      const action = order.archived ? "restore" : "archive";
+      const question = action === "archive"
+        ? `Переместить заказ ${order.id} в архив? Заказ останется в базе и его можно будет вернуть.`
+        : `Вернуть заказ ${order.id} из архива?`;
+      if (!window.confirm(question)) return;
+      archiveButton.disabled = true;
+      try {
+        await jsonRequest("/api/admin/orders", {
+          method: "PATCH",
+          body: JSON.stringify({ publicCode: order.id, action }),
+        });
+        showToast(action === "archive" ? `Заказ ${order.id} перемещён в архив.` : `Заказ ${order.id} возвращён из архива.`);
+        await renderDashboard();
+      } catch (error) {
+        if (error.status === 401) {
+          renderLogin("Сессия завершена. Войди ещё раз.");
+          return;
+        }
+        showToast(error.message || "Не удалось изменить архивный статус заказа.");
+      } finally {
+        archiveButton.disabled = false;
+      }
+    });
+    const controls = element("div", "actions");
+    controls.append(select, archiveButton);
+    top.append(controls);
     card.append(top);
 
     const grid = element("div", "order-grid");
@@ -197,11 +236,12 @@
 
   let loadedOrders = [];
   let statBoxes = null;
+  let showArchived = false;
   function reloadStats() {
     if (!statBoxes) return;
     statBoxes.count.textContent = String(loadedOrders.length);
-    statBoxes.sum.textContent = formatMoney(loadedOrders.reduce((sum, order) => sum + Number(order.total || 0), 0));
-    statBoxes.open.textContent = String(loadedOrders.filter(order => !["Готов", "Доставлен", "Отменён"].includes(order.status)).length);
+    statBoxes.sum.textContent = formatMoney(loadedOrders.filter(order => !order.archived).reduce((sum, order) => sum + Number(order.total || 0), 0));
+    statBoxes.open.textContent = String(loadedOrders.filter(order => !order.archived && !["Готов", "Доставлен", "Отменён"].includes(order.status)).length);
   }
 
   async function renderDashboard() {
@@ -210,7 +250,8 @@
     root.append(element("section", "panel loading-panel", "Загружаем реальные заказы из Neon…"));
 
     try {
-      const data = await jsonRequest("/api/admin/orders", { method: "GET" });
+      const ordersUrl = showArchived ? "/api/admin/orders?includeArchived=true" : "/api/admin/orders";
+      const data = await jsonRequest(ordersUrl, { method: "GET" });
       loadedOrders = Array.isArray(data.orders) ? data.orders : [];
     } catch (error) {
       if (error.status === 401) {
@@ -245,6 +286,12 @@
       await renderDashboard();
       showToast("Список обновлён");
     });
+    const archiveToggle = element("button", "secondary", showArchived ? "Скрыть архив" : "Показать архив");
+    archiveToggle.type = "button";
+    archiveToggle.addEventListener("click", async () => {
+      showArchived = !showArchived;
+      await renderDashboard();
+    });
     const logout = element("button", "secondary", "Выйти");
     logout.type = "button";
     logout.addEventListener("click", async () => {
@@ -254,7 +301,7 @@
       loadedOrders = [];
       renderLogin("Ты вышел из панели.");
     });
-    actions.append(refresh, logout);
+    actions.append(refresh, archiveToggle, logout);
     head.append(titleBox, actions);
 
     const stats = element("section", "stats");
@@ -268,11 +315,14 @@
     const panel = element("section", "panel");
     const sectionTitle = element("div", "section-title");
     const sectionHeading = element("div", "");
-    sectionHeading.append(element("h2", "", "Последние заказы"), element("p", "", "До 100 последних записей из базы данных"));
+    sectionHeading.append(
+      element("h2", "", showArchived ? "Заказы и архив" : "Последние заказы"),
+      element("p", "", showArchived ? "Архивные записи сохранены в Neon; их можно вернуть." : "До 100 последних заказов из базы данных")
+    );
     sectionTitle.append(sectionHeading, element("div", "order-count", `${loadedOrders.length} заказ(ов)`));
     const list = element("div", "order-list");
     if (!loadedOrders.length) {
-      list.append(element("div", "empty-state", "Пока нет заказов. Когда клиент оформит заказ, он появится здесь."));
+      list.append(element("div", "empty-state", showArchived ? "В архиве пока нет заказов." : "Пока нет заказов. Когда клиент оформит заказ, он появится здесь."));
     } else {
       for (const order of loadedOrders) list.append(createOrderCard(order, reloadStats));
     }
