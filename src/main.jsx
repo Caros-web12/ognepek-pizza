@@ -193,7 +193,7 @@ function App() {
     <header className="nav">
       <a className="brand" href="#top" onClick={() => setAdmin(false)}><span className="brand-mark"><Flame size={25}/></span><span>Печка<small>ПИЦЦА ИЗ ПЕЧИ</small></span></a>
       <nav><a href="#menu">Меню</a><a href="#story">Наша печь</a><a href="#details">Доставка</a></nav>
-      <div className="nav-actions"><button className="admin-link" onClick={() => {setAdmin(!admin); setCartOpen(false);}}>{admin ? "На сайт" : "Администратор"}</button><button className="cart-button" onClick={() => {setCartOpen(true);setConfirmed(false)}}><ShoppingBag size={17}/><span>Корзина</span><b>{totalQty}</b></button></div>
+      <div className="nav-actions"><button className="cart-button" onClick={() => {setCartOpen(true);setConfirmed(false)}}><ShoppingBag size={17}/><span>Корзина</span><b>{totalQty}</b></button></div>
     </header>
 
     {admin ? <main className="admin-page">
@@ -297,7 +297,7 @@ function App() {
         <section className="story" id="story"><div className="story-art"><div className="fire-circle"><Flame size={78}/><span>485°</span></div><span className="story-label">ТЕПЛО, КОТОРОЕ ЧУВСТВУЕТСЯ</span></div><div className="story-copy"><div className="eyebrow">НАША ФИЛОСОФИЯ / 02</div><h2>Не ускоряем.<br/><em>Делаем хорошо.</em></h2><p>Мы вдохновились Неаполем, но печём по-своему — в русской дровяной печи. Огонь, камень и правильное тесто делают своё дело. А мы просто не мешаем хорошим продуктам быть собой.</p><div className="principles"><div><Clock3/><b>48 часов</b><small>ферментация теста</small></div><div><Flame/><b>Живой огонь</b><small>никаких конвейеров</small></div><div><ChefHat/><b>Вручную</b><small>от растяжки до подачи</small></div></div></div></section>
         <section className="details section-wrap" id="details"><div><div className="eyebrow">КАК ЭТО РАБОТАЕТ / 03</div><h2>Горячая пицца<br/><em>уже в пути.</em></h2></div><div className="detail-cards"><div><span>01</span><h3>Выбираете</h3><p>Добавьте любимую пиццу в корзину и оформите заказ.</p></div><div><span>02</span><h3>Мы разжигаем</h3><p>Готовим после заказа — прямо в дровяной печи.</p></div><div><span>03</span><h3>Вы наслаждаетесь</h3><p>Самовывоз или доставка. Главное — есть горячей.</p></div></div></section>
       </main>
-      <footer><a className="brand" href="#top"><span className="brand-mark"><Flame size={25}/></span><span>печка<small>ПИЦЦА ИЗ ПЕЧИ</small></span></a><p>Сделано с огнём и хорошим тестом.</p><div><a href="#menu">Меню</a><a href="#story">О нас</a><a href="#details">Доставка</a><button onClick={()=>{setAdmin(true);window.scrollTo(0,0)}}>Вход для команды ↗</button></div><small>© 2026 Печка. Демо-сайт домашней пекарни.</small></footer>
+      <footer><a className="brand" href="#top"><span className="brand-mark"><Flame size={25}/></span><span>печка<small>ПИЦЦА ИЗ ПЕЧИ</small></span></a><p>Сделано с огнём и хорошим тестом.</p><div><a href="#menu">Меню</a><a href="#story">О нас</a><a href="#details">Доставка</a></div><small>© 2026 Печка. Демо-сайт домашней пекарни.</small></footer>
     </>}
 
     {cartOpen && <div className="drawer-backdrop" onClick={()=>setCartOpen(false)}><aside className="cart-drawer" onClick={e=>e.stopPropagation()}><div className="drawer-head"><div><span className="eyebrow">ВАШ ЗАКАЗ</span><h2>{confirmed?"Уже в работе!":"Корзина"} <em>{confirmed?"✳":`(${totalQty})`}</em></h2></div><button className="icon-button" onClick={()=>{setCartOpen(false);setCheckout(false);setConfirmed(false)}}><X/></button></div>
