@@ -83,6 +83,43 @@ function formatScheduleDate(dateValue) {
   });
 }
 
+function russianPhoneDigits(value) {
+  const raw = String(value ?? '').trim();
+  let digits = raw.replace(/\D/g, '');
+
+  // The form already displays +7, so remove that prefix while the user types.
+  if (raw.startsWith('+7') && digits.startsWith('7')) {
+    digits = digits.slice(1);
+  } else if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
+    // Also support pasting a complete number with country code 7 or national prefix 8.
+    digits = digits.slice(1);
+  }
+
+  return digits.slice(0, 10);
+}
+
+function formatRussianPhone(value) {
+  const digits = russianPhoneDigits(value);
+  if (!digits) return '+7';
+
+  let formatted = '+7';
+  formatted += ' (' + digits.slice(0, 3);
+  if (digits.length >= 3) formatted += ')';
+  if (digits.length > 3) formatted += ' ' + digits.slice(3, 6);
+  if (digits.length > 6) formatted += '-' + digits.slice(6, 8);
+  if (digits.length > 8) formatted += '-' + digits.slice(8, 10);
+  return formatted;
+}
+
+function normalizeRussianPhone(value) {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  if (digits.length === 10) return '+7' + digits;
+  if (digits.length === 11 && (digits.startsWith('7') || digits.startsWith('8'))) {
+    return '+7' + digits.slice(1);
+  }
+  return '';
+}
+
 function App() {
   const [menu, setMenu] = useState(initialMenu);
   const [cart, setCart] = useState({});
@@ -93,7 +130,7 @@ function App() {
     const firstChoice = getFirstBookingChoice(new Date());
     return {
       name: "",
-      phone: "",
+      phone: "+7",
       address: "",
       method: "Доставка",
       comment: "",
@@ -143,6 +180,12 @@ function App() {
       return;
     }
 
+    const normalizedPhone = normalizeRussianPhone(customer.phone);
+    if (!normalizedPhone) {
+      flash("Введите 10 цифр номера телефона после +7.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const response = await fetch("/api/orders", {
@@ -151,7 +194,7 @@ function App() {
         body: JSON.stringify({
           customer: {
             name: customer.name.trim(),
-            phone: customer.phone.trim(),
+            phone: normalizedPhone,
             method: customer.method,
             address: customer.method === "Доставка" ? customer.address.trim() : "",
             comment: customer.comment.trim(),
@@ -193,7 +236,7 @@ function App() {
     <header className="nav">
       <a className="brand" href="#top" onClick={() => setAdmin(false)}><span className="brand-mark"><Flame size={25}/></span><span>Печка<small>ПИЦЦА ИЗ ПЕЧИ</small></span></a>
       <nav><a href="#menu">Меню</a><a href="#story">Наша печь</a><a href="#details">Доставка</a></nav>
-      <div className="nav-actions"><button className="admin-link" onClick={() => {setAdmin(!admin); setCartOpen(false);}}>{admin ? "На сайт" : "Администратор"}</button><button className="cart-button" onClick={() => {setCartOpen(true);setConfirmed(false)}}><ShoppingBag size={17}/><span>Корзина</span><b>{totalQty}</b></button></div>
+      <div className="nav-actions"><button className="cart-button" onClick={() => {setCartOpen(true);setConfirmed(false)}}><ShoppingBag size={17}/><span>Корзина</span><b>{totalQty}</b></button></div>
     </header>
 
     {admin ? <main className="admin-page">
@@ -297,7 +340,7 @@ function App() {
         <section className="story" id="story"><div className="story-art"><div className="fire-circle"><Flame size={78}/><span>485°</span></div><span className="story-label">ТЕПЛО, КОТОРОЕ ЧУВСТВУЕТСЯ</span></div><div className="story-copy"><div className="eyebrow">НАША ФИЛОСОФИЯ / 02</div><h2>Не ускоряем.<br/><em>Делаем хорошо.</em></h2><p>Мы вдохновились Неаполем, но печём по-своему — в русской дровяной печи. Огонь, камень и правильное тесто делают своё дело. А мы просто не мешаем хорошим продуктам быть собой.</p><div className="principles"><div><Clock3/><b>48 часов</b><small>ферментация теста</small></div><div><Flame/><b>Живой огонь</b><small>никаких конвейеров</small></div><div><ChefHat/><b>Вручную</b><small>от растяжки до подачи</small></div></div></div></section>
         <section className="details section-wrap" id="details"><div><div className="eyebrow">КАК ЭТО РАБОТАЕТ / 03</div><h2>Горячая пицца<br/><em>уже в пути.</em></h2></div><div className="detail-cards"><div><span>01</span><h3>Выбираете</h3><p>Добавьте любимую пиццу в корзину и оформите заказ.</p></div><div><span>02</span><h3>Мы разжигаем</h3><p>Готовим после заказа — прямо в дровяной печи.</p></div><div><span>03</span><h3>Вы наслаждаетесь</h3><p>Самовывоз или доставка. Главное — есть горячей.</p></div></div></section>
       </main>
-      <footer><a className="brand" href="#top"><span className="brand-mark"><Flame size={25}/></span><span>печка<small>ПИЦЦА ИЗ ПЕЧИ</small></span></a><p>Сделано с огнём и хорошим тестом.</p><div><a href="#menu">Меню</a><a href="#story">О нас</a><a href="#details">Доставка</a><button onClick={()=>{setAdmin(true);window.scrollTo(0,0)}}>Вход для команды ↗</button></div><small>© 2026 Печка. Демо-сайт домашней пекарни.</small></footer>
+      <footer><a className="brand" href="#top"><span className="brand-mark"><Flame size={25}/></span><span>печка<small>ПИЦЦА ИЗ ПЕЧИ</small></span></a><p>Сделано с огнём и хорошим тестом.</p><div><a href="#menu">Меню</a><a href="#story">О нас</a><a href="#details">Доставка</a></div><small>© 2026 Печка. Демо-сайт домашней пекарни.</small></footer>
     </>}
 
     {cartOpen && <div className="drawer-backdrop" onClick={()=>setCartOpen(false)}><aside className="cart-drawer" onClick={e=>e.stopPropagation()}><div className="drawer-head"><div><span className="eyebrow">ВАШ ЗАКАЗ</span><h2>{confirmed?"Уже в работе!":"Корзина"} <em>{confirmed?"✳":`(${totalQty})`}</em></h2></div><button className="icon-button" onClick={()=>{setCartOpen(false);setCheckout(false);setConfirmed(false)}}><X/></button></div>
@@ -395,9 +438,12 @@ function App() {
             required
             type="tel"
             value={customer.phone}
-            onChange={e => setCustomer({ ...customer, phone: e.target.value })}
+            onChange={e => setCustomer(current => ({ ...current, phone: formatRussianPhone(e.target.value) }))}
+            inputMode="tel"
+            autoComplete="tel-national"
             placeholder="+7 (___) ___-__-__"
           />
+          <small className="hint">Код +7 уже добавлен — введите остальные 10 цифр.</small>
         </label>
         {customer.method === "Доставка" && (
           <label>
