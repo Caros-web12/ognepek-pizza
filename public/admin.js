@@ -242,6 +242,8 @@
   let businessReportsRoot = null;
   let showArchived = false;
   let currentView = "orders";
+  let planningRoot = null;
+  let planningSnapshot = null;
   let chartDays = 7;
 
   function formatChartDay(value) {
@@ -367,6 +369,257 @@
     if (description) header.append(element("p", "", description));
     panel.append(header);
     return panel;
+  }
+
+  async function renderFinancialPlanning() {
+    if (!planningRoot) return;
+
+    planningRoot.replaceChildren();
+
+    const panel = reportPanel(
+      "Финансовое планирование",
+      "Составь план на любой период. Сохранённые планы можно загружать и редактировать."
+    );
+
+    const form = element("form", "planning-form");
+    const fields = element("div", "planning-fields");
+
+    function addField(labelText, name, type = "number") {
+      const wrapper = element("label", "planning-field");
+      wrapper.append(element("span", "", labelText));
+
+      const input = document.createElement("input");
+      input.type = type;
+      input.name = name;
+
+      if (type === "number") {
+        input.min = "0";
+        input.step = "0.01";
+        input.value = "0";
+        input.required = true;
+      }
+
+      if (type === "date") {
+        input.required = true;
+      }
+
+      wrapper.append(input);
+      fields.append(wrapper);
+      return input;
+    }
+
+    const startDate = addField("Начало периода", "startDate", "date");
+    const endDate = addField("Конец периода", "endDate", "date");
+    const revenue = addField("Плановая выручка, ₽", "revenue");
+    const ingredients = addField("Продукты и ингредиенты, ₽", "ingredients");
+    const salaries = addField("Зарплаты, ₽", "salaries");
+    const rent = addField("Аренда, ₽", "rent");
+    const other = addField("Прочие расходы, ₽", "other");
+
+    const monthButton = element(
+      "button",
+      "secondary",
+      "Выбрать текущий месяц"
+    );
+    monthButton.type = "button";
+
+    monthButton.addEventListener("click", () => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+
+      startDate.value = [
+        year,
+        String(month + 1).padStart(2, "0"),
+        "01",
+      ].join("-");
+
+      endDate.value = [
+        year,
+        String(month + 1).padStart(2, "0"),
+        String(new Date(year, month + 1, 0).getDate()).padStart(2, "0"),
+      ].join("-");
+
+      calculate();
+      loadMatchingPlan();
+    });
+
+    const saveButton = element("button", "primary", "Сохранить план");
+    saveButton.type = "submit";
+
+    const status = element("p", "report-note", "");
+    const results = element("div", "planning-results");
+
+    const savedHeading = element("h3", "owner-report-subheading", "Сохранённые планы");
+    const savedPlans = element("div", "planning-saved-plans");
+
+    function metric(label, value) {
+      const card = element("div", "planning-metric");
+      card.append(element("span", "", label));
+      card.append(element("strong", "", value));
+      return card;
+    }
+
+    function calculate() {
+      const totalExpenses =
+        Number(ingredients.value || 0) +
+        Number(salaries.value || 0) +
+        Number(rent.value || 0) +
+        Number(other.value || 0);
+
+      const plannedRevenue = Number(revenue.value || 0);
+      const profit = plannedRevenue - totalExpenses;
+      const margin = plannedRevenue > 0
+        ? profit / plannedRevenue * 100
+        : 0;
+
+      results.replaceChildren(
+        metric("Плановая выручка", formatMoney(plannedRevenue)),
+        metric("Общие расходы", formatMoney(totalExpenses)),
+        metric("Плановая прибыль", formatMoney(profit)),
+        metric("Рентабельность", margin.toLocaleString("ru-RU", {
+          maximumFractionDigits: 2,
+        }) + "%")
+      );
+    }
+
+    let plans = [];
+
+    function fillForm(plan) {
+      startDate.value = plan.periodStart;
+      endDate.value = plan.periodEnd;
+      revenue.value = String(plan.plannedRevenue);
+      ingredients.value = String(plan.ingredients);
+      salaries.value = String(plan.salaries);
+      rent.value = String(plan.rent);
+      other.value = String(plan.otherExpenses);
+      calculate();
+      status.textContent = "Загружен сохранённый план. Можно внести изменения и сохранить.";
+    }
+
+    function renderSavedPlans() {
+      savedPlans.replaceChildren();
+
+      if (!plans.length) {
+        savedPlans.append(
+          element("p", "report-note", "Пока нет сохранённых планов.")
+        );
+        return;
+      }
+
+      for (const plan of plans) {
+        const button = element(
+          "button",
+          "secondary",
+          `${plan.periodStart} — ${plan.periodEnd}`
+        );
+        button.type = "button";
+        button.addEventListener("click", () => fillForm(plan));
+        savedPlans.append(button);
+      }
+    }
+
+    function loadMatchingPlan() {
+      const match = plans.find(plan =>
+        plan.periodStart === startDate.value &&
+        plan.periodEnd === endDate.value
+      );
+
+      if (match) fillForm(match);
+    }
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+
+      if (!form.reportValidity()) return;
+
+      if (endDate.value < startDate.value) {
+        status.textContent = "Дата окончания не может быть раньше даты начала.";
+        return;
+      }
+
+      saveButton.disabled = true;
+      status.textContent = "Сохраняем план…";
+
+      try {
+        const data = await jsonRequest("/api/admin/financial-plans", {
+          method: "POST",
+          body: JSON.stringify({
+            periodStart: startDate.value,
+            periodEnd: endDate.value,
+            plannedRevenue: revenue.value,
+            ingredients: ingredients.value,
+            salaries: salaries.value,
+            rent: rent.value,
+            otherExpenses: other.value,
+          }),
+        });
+
+        const saved = data.plan;
+        plans = [
+          saved,
+          ...plans.filter(plan =>
+            !(plan.periodStart === saved.periodStart &&
+              plan.periodEnd === saved.periodEnd)
+          ),
+        ];
+
+        renderSavedPlans();
+        fillForm(saved);
+        status.textContent = "План успешно сохранён в базе данных.";
+      } catch (error) {
+        status.textContent = error.message || "Не удалось сохранить план.";
+      } finally {
+        saveButton.disabled = false;
+      }
+    });
+
+    for (const input of [
+      startDate,
+      endDate,
+      revenue,
+      ingredients,
+      salaries,
+      rent,
+      other,
+    ]) {
+      input.addEventListener("input", calculate);
+    }
+
+    form.append(fields, monthButton, saveButton);
+    panel.append(form, status, results, savedHeading, savedPlans);
+    planningRoot.append(panel);
+    calculate();
+
+    try {
+      const data = await jsonRequest("/api/admin/financial-plans", {
+        method: "GET",
+      });
+
+      plans = Array.isArray(data.plans) ? data.plans : [];
+      renderSavedPlans();
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+
+      startDate.value = [
+        year,
+        String(month + 1).padStart(2, "0"),
+        "01",
+      ].join("-");
+
+      endDate.value = [
+        year,
+        String(month + 1).padStart(2, "0"),
+        String(new Date(year, month + 1, 0).getDate()).padStart(2, "0"),
+      ].join("-");
+
+      loadMatchingPlan();
+    } catch (error) {
+      renderSavedPlans();
+      status.textContent = "Не удалось загрузить планы: " + error.message;
+    }
   }
 
   function renderOwnerReports(snapshot) {
@@ -544,6 +797,19 @@
       showArchived = false;
       await renderDashboard();
     });
+    const planningViewButton = element(
+      "button",
+      "secondary" + (currentView === "planning" ? " nav-selected" : ""),
+      "Финансовое планирование"
+    );
+    planningViewButton.type = "button";
+    planningViewButton.setAttribute("aria-pressed", String(currentView === "planning"));
+    planningViewButton.addEventListener("click", async () => {
+      if (currentView === "planning" && !showArchived) return;
+      currentView = "planning";
+      showArchived = false;
+      await renderDashboard();
+    });
     const refresh = element("button", "secondary", currentView === "reports" ? "Обновить отчёты" : "Обновить заказы");
     refresh.type = "button";
     refresh.addEventListener("click", async () => {
@@ -567,7 +833,7 @@
       loadedOrders = [];
       renderLogin("Ты вышел из панели.");
     });
-    actions.append(ordersViewButton, reportsViewButton, refresh);
+    actions.append(ordersViewButton, reportsViewButton, planningViewButton, refresh);
     if (currentView === "orders") actions.append(archiveToggle);
     actions.append(logout);
     head.append(titleBox, actions);
@@ -578,6 +844,7 @@
     salesChartRoot = null;
     topItemsRoot = null;
     businessReportsRoot = null;
+    planningRoot = null;
     if (!showArchived && currentView === "reports") {
       stats = element("section", "stats");
       const ordersToday = makeStat("Заказов сегодня", "0");
@@ -635,6 +902,9 @@
       businessReportsRoot = element("section", "owner-reports");
     }
 
+        if (!showArchived && currentView === "planning") {
+      planningRoot = element("section", "owner-reports");
+    }
     const panel = element("section", "panel");
     const sectionTitle = element("div", "section-title");
     const sectionHeading = element("div", "");
@@ -652,15 +922,22 @@
     panel.append(sectionTitle, list);
     const dashboardChildren = [masthead, head];
     if (currentView === "orders" || showArchived) {
-      dashboardChildren.push(panel);
-    } else {
-      dashboardChildren.push(stats, analytics, businessReportsRoot);
-    }
+        dashboardChildren.push(panel);
+      } else if (currentView === "reports") {
+        dashboardChildren.push(stats, analytics, businessReportsRoot);
+      } else if (currentView === "planning") {
+        dashboardChildren.push(planningRoot);
+      }
     dashboardChildren.push(element("div", "footer-note", "Печка · ДАННЫЕ ИЗ NEON · СЕССИЯ ЗАЩИЩЕНА"));
     root.append(...dashboardChildren);
-    if (!showArchived && currentView === "reports") await Promise.all([reloadStats(), reloadOwnerReports()]);
-  }
+    if (!showArchived && currentView === "reports") {
+      await Promise.all([reloadStats(), reloadOwnerReports()]);
+    }
 
+    if (!showArchived && currentView === "planning") {
+      renderFinancialPlanning();
+    }
+    }
   async function init() {
     try {
       const session = await jsonRequest("/api/admin/session", { method: "GET" });
