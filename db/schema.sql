@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS orders (
   customer_name TEXT NOT NULL,
   phone TEXT NOT NULL,
   method TEXT NOT NULL CHECK (method IN ('Доставка', 'Самовывоз')),
+  payment_method TEXT NOT NULL DEFAULT 'Наличными' CHECK (payment_method IN ('Наличными', 'Переводом')),
   address TEXT,
   comment TEXT,
   scheduled_date DATE NOT NULL,

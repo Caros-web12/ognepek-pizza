@@ -133,6 +133,7 @@ function App() {
       phone: "+7",
       address: "",
       method: "Доставка",
+      paymentMethod: "Наличными",
       comment: "",
       orderDate: firstChoice.date,
       orderTime: firstChoice.time,
@@ -196,6 +197,7 @@ function App() {
             name: customer.name.trim(),
             phone: normalizedPhone,
             method: customer.method,
+            paymentMethod: customer.paymentMethod,
             address: customer.method === "Доставка" ? customer.address.trim() : "",
             comment: customer.comment.trim(),
           },
@@ -268,10 +270,39 @@ function App() {
     </main> : <>
       <main id="top">
         <section className="hero">
-          <div className="hero-copy"><div className="eyebrow"><span className="dot"/> МАЛЕНЬКАЯ ПЕКАРНЯ · БОЛЬШОЙ ОГОНЬ</div><h1>Настоящая<br/>пицца. <em>Живой</em><br/><em>огонь.</em></h1><p>Неаполитанский характер, долгое тесто и русская печь на дровах. Каждая пицца — вручную, с теплом и хрустящим бортиком.</p><div className="hero-actions"><a className="primary" href="#menu">Выбрать пиццу <ArrowRight size={17}/></a><span className="hero-note"><Flame size={17}/> 90 секунд в печи</span></div><div className="hero-foot"><div className="avatar-stack"><span>М</span><span>А</span><span>И</span></div><div><b>Тесто живёт 48 часов</b><small>И ни одной лишней спешки</small></div><span className="hero-star">✳</span></div></div>
+          <div className="hero-copy"><div className="eyebrow"><span className="dot"/> МАЛЕНЬКАЯ ПЕКАРНЯ · БОЛЬШОЙ ОГОНЬ</div><h1>Пицца с<br/><em>характером.</em></h1><p>В неаполитанском стиле, на тесте длительной ферментации. Растягиваем каждую основу вручную и выпекаем в русской дровяной печи, где жар создаёт румяный, хрустящий бортик и хорошо пропечённую основу.</p><div className="hero-actions"><a className="primary" href="#menu">Выбрать пиццу <ArrowRight size={17}/></a><span className="hero-note"><Flame size={17}/> 90 секунд в печи</span></div></div>
           <div className="hero-art hero-art-photo" role="img" aria-label="Дровяная печь, пицца и деревянный стол"><div className="art-stamp">СДЕЛАНО<br/>С ОГНЁМ <Flame size={22}/></div><div className="art-caption"><span>01 / 06</span><b>Маргарита · наша классика</b><span>↗</span></div><div className="art-scribble">fatto a mano</div></div>
         </section>
-        <div className="ticker"><span>ДОЛГОЕ ТЕСТО</span><i>✳</i><span>ЖИВОЙ ОГОНЬ</span><i>✳</i><span>РУЧНАЯ РАБОТА</span><i>✳</i><span>ТОЛЬКО СВЕЖЕЕ</span><i>✳</i><span>ДОЛГОЕ ТЕСТО</span></div>
+        
+    <div className="ticker" aria-label="48 часов ферментации для настоящего вкуса, живой огонь, ручная работа, только свежее">
+      <div className="ticker-track">
+        <div className="ticker-group" aria-hidden="true">
+          <span>48 ЧАСОВ ФЕРМЕНТАЦИИ · ДЛЯ НАСТОЯЩЕГО ВКУСА</span><i>✳</i>
+          <span>ЖИВОЙ ОГОНЬ</span><i>✳</i>
+          <span>РУЧНАЯ РАБОТА</span><i>✳</i>
+          <span>ТОЛЬКО СВЕЖЕЕ</span><i>✳</i>
+        </div>
+        <div className="ticker-group" aria-hidden="true">
+          <span>48 ЧАСОВ ФЕРМЕНТАЦИИ · ДЛЯ НАСТОЯЩЕГО ВКУСА</span><i>✳</i>
+          <span>ЖИВОЙ ОГОНЬ</span><i>✳</i>
+          <span>РУЧНАЯ РАБОТА</span><i>✳</i>
+          <span>ТОЛЬКО СВЕЖЕЕ</span><i>✳</i>
+        </div>
+        <div className="ticker-group" aria-hidden="true">
+          <span>48 ЧАСОВ ФЕРМЕНТАЦИИ · ДЛЯ НАСТОЯЩЕГО ВКУСА</span><i>✳</i>
+          <span>ЖИВОЙ ОГОНЬ</span><i>✳</i>
+          <span>РУЧНАЯ РАБОТА</span><i>✳</i>
+          <span>ТОЛЬКО СВЕЖЕЕ</span><i>✳</i>
+        </div>
+        <div className="ticker-group" aria-hidden="true">
+          <span>48 ЧАСОВ ФЕРМЕНТАЦИИ · ДЛЯ НАСТОЯЩЕГО ВКУСА</span><i>✳</i>
+          <span>ЖИВОЙ ОГОНЬ</span><i>✳</i>
+          <span>РУЧНАЯ РАБОТА</span><i>✳</i>
+          <span>ТОЛЬКО СВЕЖЕЕ</span><i>✳</i>
+        </div>
+      </div>
+    </div>
+
         {/* МЕНЮ: фотографии чистые, без надписей и порядковых номеров */}
         <section className="menu-section section-wrap" id="menu">
           <div className="section-heading">
@@ -338,7 +369,7 @@ function App() {
           </div>
         </section>
         <section className="story" id="story"><div className="story-art"><div className="fire-circle"><Flame size={78}/><span>485°</span></div><span className="story-label">ТЕПЛО, КОТОРОЕ ЧУВСТВУЕТСЯ</span></div><div className="story-copy"><div className="eyebrow">НАША ФИЛОСОФИЯ / 02</div><h2>Не ускоряем.<br/><em>Делаем хорошо.</em></h2><p>Мы вдохновились Неаполем, но печём по-своему — в русской дровяной печи. Огонь, камень и правильное тесто делают своё дело. А мы просто не мешаем хорошим продуктам быть собой.</p><div className="principles"><div><Clock3/><b>48 часов</b><small>ферментация теста</small></div><div><Flame/><b>Живой огонь</b><small>никаких конвейеров</small></div><div><ChefHat/><b>Вручную</b><small>от растяжки до подачи</small></div></div></div></section>
-        <section className="details section-wrap" id="details"><div><div className="eyebrow">КАК ЭТО РАБОТАЕТ / 03</div><h2>Горячая пицца<br/><em>уже в пути.</em></h2></div><div className="detail-cards"><div><span>01</span><h3>Выбираете</h3><p>Добавьте любимую пиццу в корзину и оформите заказ.</p></div><div><span>02</span><h3>Мы разжигаем</h3><p>Готовим после заказа — прямо в дровяной печи.</p></div><div><span>03</span><h3>Вы наслаждаетесь</h3><p>Самовывоз или доставка. Главное — есть горячей.</p></div></div></section>
+        <section className="details section-wrap" id="details"><div><div className="eyebrow">КАК ЭТО РАБОТАЕТ / 03</div><h2>Горячая пицца<br/><em>уже в пути.</em></h2></div><div className="detail-cards"><div><span>01</span><h3>Выбираете</h3><p>Добавьте любимую пиццу в корзину и оформите заказ.</p></div><div><span>02</span><h3>Выпекаем</h3><p>Растягиваем тесто вручную и выпекаем пиццу в русской дровяной печи. Около 90 секунд в печи.</p></div><div><span>03</span><h3>Получаете</h3><p>Заберите заказ самостоятельно или выберите доставку. Пицца отправится к вам горячей.</p></div></div></section>
       </main>
       <footer><a className="brand" href="#top"><span className="brand-mark"><Flame size={25}/></span><span>печка<small>ПИЦЦА ИЗ ПЕЧИ</small></span></a><p>Сделано с огнём и хорошим тестом.</p><div><a href="#menu">Меню</a><a href="#story">О нас</a><a href="#details">Доставка</a></div><small>© 2026 Печка. Демо-сайт домашней пекарни.</small></footer>
     </>}
@@ -453,9 +484,18 @@ function App() {
               value={customer.address}
               onChange={e => setCustomer({ ...customer, address: e.target.value })}
               placeholder="Улица, дом, квартира"
+              autoComplete="street-address"
             />
+            <small className="hint">Укажите улицу, номер дома и квартиру или подъезд, если они есть.</small>
           </label>
         )}
+        <label>
+          Оплата при получении
+          <div className="method-switch" role="group" aria-label="Способ оплаты">
+            <button type="button" className={customer.paymentMethod === "Наличными" ? "active" : ""} onClick={() => setCustomer({ ...customer, paymentMethod: "Наличными" })}>Наличными</button>
+            <button type="button" className={customer.paymentMethod === "Переводом" ? "active" : ""} onClick={() => setCustomer({ ...customer, paymentMethod: "Переводом" })}>Переводом</button>
+          </div>
+        </label>
         <label>
           Комментарий к заказу
           <textarea
@@ -467,16 +507,14 @@ function App() {
         </label>
 
         <div className="checkout-total">
-          <span>Итого за пиццу</span>
+          <span>Итого стоимость заказа</span>
           <b>{money(total)}</b>
         </div>
-        <p className="hint">
-          Заказ сохраняется в базе данных. Оплата — при получении; онлайн-оплата не используется.
-        </p>
+        <p className="hint">Оплата только при получении: наличными или переводом. Онлайн-оплата не используется.</p>
         <button className="primary full" type="submit" disabled={!validSchedule || isSubmitting || cartItems.length === 0}>
           {isSubmitting ? "Сохраняем заказ…" : "Подтвердить заказ"} {!isSubmitting && <ArrowRight size={16} />}
         </button>
-      </form> : <>{cartItems.length===0?<div className="empty-cart"><span>🍕</span><h3>Пока пустовато</h3><p>Добавьте пиццу из меню — печь уже готова.</p><button className="primary" onClick={()=>setCartOpen(false)}>Выбрать пиццу</button></div>:<><div className="cart-items">{cartItems.map(p=><div className="cart-item" key={p.id}><span className={"cart-emoji "+p.color}>{p.emoji}</span><div className="cart-item-main"><b>{p.name}</b><small>{p.weight}</small><strong>{money(p.price*p.qty)}</strong></div><div className="qty"><button onClick={()=>change(p.id,-1)}><Minus size={14}/></button><b>{p.qty}</b><button onClick={()=>add(p.id)}><Plus size={14}/></button></div></div>)}</div><div className="drawer-bottom"><div className="delivery-note"><Flame size={17}/><span>Готовим после заказа.<br/><b>Обычно 25–40 минут</b></span></div><div className="checkout-total"><span>Итого</span><b>{money(total)}</b></div><button className="primary full" onClick={()=>setCheckout(true)}>Оформить заказ <ArrowRight size={16}/></button><small>Нажимая кнопку, вы отправляете тестовый заказ.</small></div></>}</>}
+      </form> : <>{cartItems.length===0?<div className="empty-cart"><span>🍕</span><h3>Пока пустовато</h3><p>Добавьте пиццу из меню — печь уже готова.</p><button className="primary" onClick={()=>setCartOpen(false)}>Выбрать пиццу</button></div>:<><div className="cart-items">{cartItems.map(p=><div className="cart-item" key={p.id}><span className={"cart-emoji "+p.color}>{p.emoji}</span><div className="cart-item-main"><b>{p.name}</b><small>{p.weight}</small><strong>{money(p.price*p.qty)}</strong></div><div className="qty"><button onClick={()=>change(p.id,-1)}><Minus size={14}/></button><b>{p.qty}</b><button onClick={()=>add(p.id)}><Plus size={14}/></button></div></div>)}</div><div className="drawer-bottom"><div className="delivery-note"><Flame size={17}/><span>Готовим после заказа.<br/><b>Обычно 25–40 минут</b></span></div><div className="checkout-total"><span>Итого стоимость заказа</span><b>{money(total)}</b></div><button className="primary full" onClick={()=>setCheckout(true)}>Оформить заказ <ArrowRight size={16}/></button><small>Нажимая кнопку, вы отправляете тестовый заказ.</small></div></>}</>}
       </aside></div>}
     {notice && <div className="toast"><Check size={16}/>{notice}</div>}
     <button className="floating-cart" onClick={()=>setCartOpen(true)}><ShoppingBag size={18}/>{totalQty>0&&<b>{totalQty}</b>}</button>

@@ -107,6 +107,7 @@ export default async function handler(req, res) {
   const rawPhone = cleanText(customerInput.phone, 40);
   const phone = normalizeRussianPhone(rawPhone);
   const method = customerInput.method;
+  const paymentMethod = customerInput.paymentMethod;
   const address = cleanText(customerInput.address, 250);
   const comment = cleanText(customerInput.comment, 1000);
   const scheduledDate = body?.scheduledDate;
@@ -121,6 +122,9 @@ export default async function handler(req, res) {
   }
   if (!["Доставка", "Самовывоз"].includes(method)) {
     return send(res, 400, { error: "Выберите доставку или самовывоз." });
+  }
+  if (!["Наличными", "Переводом"].includes(paymentMethod)) {
+    return send(res, 400, { error: "Выберите оплату наличными или переводом при получении." });
   }
   if (method === "Доставка" && !address) {
     return send(res, 400, { error: "Для доставки укажите адрес." });
@@ -182,16 +186,16 @@ export default async function handler(req, res) {
     const totalRub = pricedItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     const [created] = await sql`
       INSERT INTO orders (
-        customer_name, phone, method, address, comment,
+        customer_name, phone, method, payment_method, address, comment,
         scheduled_date, scheduled_time, status, total_rub
       ) VALUES (
-        ${customerName}, ${phone}, ${method}, ${address || null}, ${comment || null},
+        ${customerName}, ${phone}, ${method}, ${paymentMethod}, ${address || null}, ${comment || null},
         ${scheduledDate}::date, ${scheduledTime}::time, 'Новый', ${totalRub}
       )
       RETURNING id, created_at
     `;
     insertedOrderId = Number(created.id);
-    const publicCode = `OG-${String(insertedOrderId).padStart(6, "0")}`;
+    const publicCode = `OG-${String(insertedOrderId).padStart(5, "0")}`;
 
     await sql`UPDATE orders SET public_code = ${publicCode} WHERE id = ${insertedOrderId}`;
     for (const item of pricedItems) {
@@ -220,6 +224,7 @@ export default async function handler(req, res) {
       scheduledDate,
       scheduledTime,
       method,
+      paymentMethod,
       address,
       phone,
       comment,
