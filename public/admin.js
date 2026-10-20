@@ -1,6 +1,18 @@
 (() => {
   const root = document.getElementById("adminRoot");
-  const STATUS_OPTIONS = ["Новый", "Готовится", "В печи", "Готов", "Доставлен", "Отменён"];
+  const BASE_STATUS_OPTIONS = ["Новый", "Сборка", "Готов", "Отменён"];
+
+  function finalStatusFor(order) {
+    return order.method === "Самовывоз" ? "Выдан" : "Доставлен";
+  }
+
+  function statusOptionsFor(order) {
+    return [...BASE_STATUS_OPTIONS, finalStatusFor(order)];
+  }
+
+  function isFinalStatus(status) {
+    return status === "Доставлен" || status === "Выдан";
+  }
   let toastTimer;
 
   function showToast(message) {
@@ -136,14 +148,14 @@
 
     const select = element("select", `status-control ${statusClass(order.status)}`);
     select.setAttribute("aria-label", `Статус заказа ${order.id || "без номера"}`);
-    if (order.status === "Доставлен" || order.archived) {
+    if (isFinalStatus(order.status) || order.archived) {
       select.disabled = true;
       select.title = order.archived
         ? "Заказ находится в архиве. Верните его из архива, чтобы менять статус."
-        : "Доставленный заказ нельзя изменить обычным способом.";
+        : "Завершённый заказ нельзя изменить обычным способом.";
     }
     if (order.archived) identifiers.append(element("div", "order-time", "В архиве"));
-    for (const status of STATUS_OPTIONS) {
+    for (const status of statusOptionsFor(order)) {
       const option = element("option", "", status);
       option.value = status;
       option.selected = status === order.status;
@@ -160,9 +172,9 @@
         });
         order.status = nextStatus;
         select.className = `status-control ${statusClass(nextStatus)}`;
-        if (nextStatus === "Доставлен") {
+        if (isFinalStatus(nextStatus)) {
           select.disabled = true;
-          select.title = "Доставленный заказ нельзя изменить обычным способом.";
+          select.title = "Завершённый заказ нельзя изменить обычным способом.";
         }
         showToast(`Статус ${order.id} сохранён: ${nextStatus}`);
       } catch (err) {
@@ -173,7 +185,7 @@
         }
         showToast(err.message || "Не удалось сохранить статус.");
       } finally {
-        select.disabled = order.status === "Доставлен" || order.archived;
+        select.disabled = isFinalStatus(order.status) || order.archived;
       }
       reloadStats();
     });
@@ -215,16 +227,28 @@
     const method = element("div", "");
     method.append(element("div", "detail-label", "Получение"));
     method.append(element("div", "detail-value", `${order.method || "—"}\n${order.address || "Адрес не указан"}`));
+    const payment = element("div", "");
+    payment.append(element("div", "detail-label", "Оплата"));
+    payment.append(element("div", "detail-value", `${order.paymentMethod || "Наличными"} при получении`));
     const schedule = element("div", "");
     schedule.append(element("div", "detail-label", "Выпечка / выдача"));
     schedule.append(element("div", "detail-value", `${formatScheduleDate(order.scheduledDate)}\n${order.scheduledTime || "—"}`));
-    grid.append(customer, method, schedule);
+    grid.append(customer, method, payment, schedule);
     card.append(grid);
 
     const items = element("div", "order-items");
     const left = element("div", "");
     left.append(element("div", "detail-label", "Состав заказа"));
-    left.append(element("p", "", order.items || "Состав не указан"));
+    const lineItems = Array.isArray(order.lineItems) ? order.lineItems : [];
+    if (lineItems.length) {
+      const list = element("ul", "order-item-list");
+      for (const item of lineItems) {
+        list.append(element("li", "", `${item.name} × ${item.quantity}`));
+      }
+      left.append(list);
+    } else {
+      left.append(element("p", "", order.items || "Состав не указан"));
+    }
     if (order.comment) {
       left.append(element("div", "detail-label", "Комментарий"));
       left.append(element("p", "", order.comment));

@@ -2,7 +2,15 @@ import { neon } from "@neondatabase/serverless";
 import { parseJsonBody, requireAdmin } from "../../lib/adminAuth.js";
 
 const BUSINESS_TIME_ZONE = process.env.BUSINESS_TIME_ZONE || "Europe/Moscow";
-const VALID_STATUSES = new Set(["Новый", "Готовится", "В печи", "Готов", "Доставлен", "Отменён"]);
+const BASE_STATUSES = ["Новый", "Сборка", "Готов", "Отменён"];
+
+function allowedStatuses(method) {
+  return new Set([...BASE_STATUSES, method === "Доставка" ? "Доставлен" : "Выдан"]);
+}
+
+function isFinalStatus(status) {
+  return status === "Доставлен" || status === "Выдан";
+}
 
 function db() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not configured");
@@ -34,6 +42,7 @@ export default async function handler(req, res) {
           o.customer_name,
           o.phone,
           o.method,
+          o.payment_method,
           o.address,
           o.comment,
           to_char(o.scheduled_date, 'YYYY-MM-DD') AS scheduled_date,
@@ -67,10 +76,11 @@ export default async function handler(req, res) {
       const orders = rows.map(row => {
         const lineItems = Array.isArray(row.line_items) ? row.line_items : [];
         return {
-          id: row.public_code || `OG-${String(row.id).padStart(6, "0")}`,
+          id: row.public_code || `OG-${String(row.id).padStart(5, "0")}`,
           customer: row.customer_name,
           phone: row.phone,
           method: row.method,
+          paymentMethod: row.payment_method || "Наличными",
           address: row.address || "",
           comment: row.comment || "",
           items: lineItems.map(item => `${item.name} × ${item.quantity}`).join(", "),
@@ -98,7 +108,7 @@ export default async function handler(req, res) {
   }
 
   const publicCode = typeof body?.publicCode === "string" ? body.publicCode.trim() : "";
-  if (!/^OG-\d{6,}$/.test(publicCode)) {
+  if (!/^OG-\d{5,}$/.test(publicCode)) {
     return res.status(400).json({ error: "Укажите корректный номер заказа." });
   }
 
@@ -139,35 +149,37 @@ export default async function handler(req, res) {
     }
   }
 
-  const status = typeof body?.status === "string" ? body.status : "";
-  if (!VALID_STATUSES.has(status)) {
-    return res.status(400).json({ error: "Укажите корректный статус заказа." });
-  }
-
   try {
+    const existingRows = await sql`
+      SELECT status, method, archived_at
+      FROM orders
+      WHERE public_code = ${publicCode}
+      LIMIT 1
+    `;
+    if (existingRows.length === 0) {
+      return res.status(404).json({ error: "Заказ не найден." });
+    }
+    const existing = existingRows[0];
+    if (existing.archived_at) {
+      return res.status(409).json({ error: "Заказ находится в архиве. Сначала верните его из архива." });
+    }
+
+    const status = typeof body?.status === "string" ? body.status : "";
+    if (!allowedStatuses(existing.method).has(status)) {
+      return res.status(400).json({ error: "Этот статус недоступен для выбранного способа получения." });
+    }
+    if (isFinalStatus(existing.status) && status !== existing.status) {
+      return res.status(409).json({ error: "Завершённый заказ нельзя изменить через обычную смену статуса." });
+    }
+
     const updated = await sql`
       UPDATE orders
       SET status = ${status}
       WHERE public_code = ${publicCode}
         AND archived_at IS NULL
-        AND (status <> 'Доставлен' OR status = ${status})
       RETURNING public_code, status
     `;
     if (updated.length === 0) {
-      const existing = await sql`
-        SELECT status, archived_at FROM orders WHERE public_code = ${publicCode} LIMIT 1
-      `;
-      if (existing.length === 0) {
-        return res.status(404).json({ error: "Заказ не найден." });
-      }
-      if (existing[0].archived_at) {
-        return res.status(409).json({ error: "Заказ находится в архиве. Сначала верните его из архива." });
-      }
-      if (existing[0].status === "Доставлен" && status !== "Доставлен") {
-        return res.status(409).json({
-          error: "Доставленный заказ нельзя изменить через обычную смену статуса.",
-        });
-      }
       return res.status(409).json({ error: "Не удалось изменить статус заказа." });
     }
     return res.status(200).json({ order: { id: updated[0].public_code, status: updated[0].status } });

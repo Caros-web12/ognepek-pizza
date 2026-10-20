@@ -45,7 +45,7 @@ export default async function handler(req, res) {
           CAST(COUNT(*) FILTER (WHERE order_data.business_day = local_today.day AND order_data.status = 'Отменён') AS INTEGER) AS today_cancelled,
           COALESCE(SUM(order_data.total_rub) FILTER (WHERE order_data.business_day = local_today.day AND order_data.status <> 'Отменён'), 0)::numeric AS today_amount,
           COALESCE(AVG(order_data.total_rub) FILTER (WHERE order_data.business_day = local_today.day AND order_data.status <> 'Отменён'), 0)::numeric AS today_average,
-          CAST(COUNT(*) FILTER (WHERE order_data.status IN ('Новый', 'Готовится', 'В печи')) AS INTEGER) AS active_orders,
+          CAST(COUNT(*) FILTER (WHERE order_data.status IN ('Новый', 'Сборка')) AS INTEGER) AS active_orders,
           CAST(COUNT(*) FILTER (WHERE order_data.status = 'Готов') AS INTEGER) AS ready_orders
         FROM local_today
         LEFT JOIN order_data ON TRUE
