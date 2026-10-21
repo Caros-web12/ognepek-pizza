@@ -57,6 +57,8 @@ function createResponseAdapter() {
 
 async function makeRequestAdapter(request, url) {
   const headers = Object.fromEntries(request.headers.entries());
+  // The admin session helper uses this to mark cookies Secure behind HTTPS.
+  headers["x-forwarded-proto"] = url.protocol.replace(":", "");
   let body;
 
   if (request.method !== "GET" && request.method !== "HEAD") {
