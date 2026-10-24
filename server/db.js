@@ -1,5 +1,5 @@
 
-import { neon } from "@neondatabase/serverless";
+import { neon } from "../lib/pg-compat.js";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("Не задана переменная DATABASE_URL");

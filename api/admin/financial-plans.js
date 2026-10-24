@@ -1,5 +1,5 @@
 
-import { neon } from "@neondatabase/serverless";
+import { neon } from "../../lib/pg-compat.js";
 import { requireAdmin, parseJsonBody } from "../../lib/adminAuth.js";
 
 const amountFields = [

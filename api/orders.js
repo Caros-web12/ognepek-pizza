@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless";
+import { neon } from "../lib/pg-compat.js";
 
 const BUSINESS_TIME_ZONE = process.env.BUSINESS_TIME_ZONE || "Europe/Moscow";
 const BAKE_DAYS = new Set([0, 4, 5, 6]); // Sunday, Thursday, Friday, Saturday
@@ -239,7 +239,7 @@ export default async function handler(req, res) {
     }
     console.error("Create order failed:", error);
     return send(res, 500, {
-      error: "Не удалось сохранить заказ. Проверьте таблицы Neon и попробуйте ещё раз.",
+      error: "Не удалось сохранить заказ. Проверьте таблицы базы данных и попробуйте ещё раз.",
     });
   }
 }

@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless";
+import { neon } from "../../lib/pg-compat.js";
 import { parseJsonBody, requireAdmin } from "../../lib/adminAuth.js";
 
 const BUSINESS_TIME_ZONE = process.env.BUSINESS_TIME_ZONE || "Europe/Moscow";

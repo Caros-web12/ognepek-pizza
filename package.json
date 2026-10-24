@@ -10,12 +10,10 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "@neon/config": "^1.8.7",
-    "@neon/env": "^1.5.4",
-    "@neondatabase/serverless": "^1.2.0",
     "@vitejs/plugin-react": "latest",
     "express": "^5.3.0",
     "lucide-react": "latest",
+    "pg": "^8.23.1",
     "react": "latest",
     "react-dom": "latest",
     "vite": "latest"

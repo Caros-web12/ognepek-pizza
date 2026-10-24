@@ -1,4 +1,4 @@
-import { neon } from "@neondatabase/serverless";
+import { neon } from "../../lib/pg-compat.js";
 import { requireAdmin } from "../../lib/adminAuth.js";
 
 export default async function handler(req, res) {

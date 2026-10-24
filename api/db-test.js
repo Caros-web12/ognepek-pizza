@@ -1,5 +1,5 @@
 
-import { neon } from "@neondatabase/serverless";
+import { neon } from "../lib/pg-compat.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
